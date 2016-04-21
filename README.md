@@ -12,8 +12,10 @@ Description
 Compilation
 ===========
 
+```
 patch -p0 < /path/to/nginx-http-upstream-dynamic-module/http-upstream-dynamic.patch
 ./configure --add-module=/path/to/nginx-http-upstream-dynamic-module
+```
 
 Examples
 ========
@@ -56,7 +58,7 @@ The 'fail_timeout' parameter specifies how long time tengine considers the DNS s
 Notes
 =====
 
- It is a tengine module from
+* It is a tengine module from
  https://github.com/alibaba/tengine/blob/master/src/http/modules/ngx_http_upstream_dynamic_module.c
  and made to work with nginx 1.9
- It follows original tengine license.
+* It follows original tengine license.
