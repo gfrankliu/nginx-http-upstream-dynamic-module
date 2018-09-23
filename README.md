@@ -13,7 +13,11 @@ Compilation
 ===========
 
 ```
+\#for nginx 1.10 or lower, use the patch http-upstream-dynamic.patch
+\#for nginx 1.14 or higher, use the patch http-upstream-dynamic.patch-1.14.0+
+
 patch -p0 < /path/to/nginx-http-upstream-dynamic-module/http-upstream-dynamic.patch
+
 ./configure --add-module=/path/to/nginx-http-upstream-dynamic-module
 ```
 

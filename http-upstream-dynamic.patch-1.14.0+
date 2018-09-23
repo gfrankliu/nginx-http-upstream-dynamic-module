@@ -1,0 +1,100 @@
+diff -u ./src/http/ngx_http_upstream.c.orig ./src/http/ngx_http_upstream.c
+--- ./src/http/ngx_http_upstream.c.orig	2018-09-23 18:24:30.789203079 +0000
++++ ./src/http/ngx_http_upstream.c	2018-09-23 18:30:00.857943573 +0000
+@@ -35,7 +35,7 @@
+ static void ngx_http_upstream_wr_check_broken_connection(ngx_http_request_t *r);
+ static void ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
+     ngx_event_t *ev);
+-static void ngx_http_upstream_connect(ngx_http_request_t *r,
++void ngx_http_upstream_connect(ngx_http_request_t *r,
+     ngx_http_upstream_t *u);
+ static ngx_int_t ngx_http_upstream_reinit(ngx_http_request_t *r,
+     ngx_http_upstream_t *u);
+@@ -99,7 +99,7 @@
+ static void ngx_http_upstream_next(ngx_http_request_t *r,
+     ngx_http_upstream_t *u, ngx_uint_t ft_type);
+ static void ngx_http_upstream_cleanup(void *data);
+-static void ngx_http_upstream_finalize_request(ngx_http_request_t *r,
++void ngx_http_upstream_finalize_request(ngx_http_request_t *r,
+     ngx_http_upstream_t *u, ngx_int_t rc);
+ 
+ static ngx_int_t ngx_http_upstream_process_header_line(ngx_http_request_t *r,
+@@ -1492,7 +1492,7 @@
+ }
+ 
+ 
+-static void
++void
+ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
+ {
+     ngx_int_t          rc;
+@@ -1518,6 +1518,9 @@
+     u->state->header_time = (ngx_msec_t) -1;
+ 
+     rc = ngx_event_connect_peer(&u->peer);
++    if (rc == NGX_YIELD) {
++        return;
++    }
+ 
+     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                    "http upstream connect: %i", rc);
+@@ -4243,7 +4246,7 @@
+ }
+ 
+ 
+-static void
++void
+ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
+     ngx_http_upstream_t *u, ngx_int_t rc)
+ {
+diff -u ./src/http/ngx_http_upstream.h.orig ./src/http/ngx_http_upstream.h
+--- ./src/http/ngx_http_upstream.h.orig	2018-09-23 18:30:14.223973009 +0000
++++ ./src/http/ngx_http_upstream.h	2018-09-23 18:32:10.516227564 +0000
+@@ -100,6 +100,8 @@
+     time_t                           fail_timeout;
+     ngx_msec_t                       slow_start;
+     ngx_uint_t                       down;
++    ngx_str_t                        id;
++    ngx_str_t                        host;
+ 
+     unsigned                         backup:1;
+ 
+@@ -336,6 +338,7 @@
+     ngx_http_upstream_headers_in_t   headers_in;
+ 
+     ngx_http_upstream_resolved_t    *resolved;
++    ngx_resolver_ctx_t              *dyn_resolve_ctx;
+ 
+     ngx_buf_t                        from_client;
+ 
+diff -u ./src/event/ngx_event_connect.h.orig ./src/event/ngx_event_connect.h
+--- ./src/event/ngx_event_connect.h.orig	2018-09-23 18:22:03.120861835 +0000
++++ ./src/event/ngx_event_connect.h	2018-09-23 18:23:55.077121192 +0000
+@@ -39,6 +39,7 @@
+     struct sockaddr                 *sockaddr;
+     socklen_t                        socklen;
+     ngx_str_t                       *name;
++    ngx_str_t                       *host;
+ 
+     ngx_uint_t                       tries;
+     ngx_msec_t                       start_time;
+@@ -63,6 +64,8 @@
+     unsigned                         cached:1;
+     unsigned                         transparent:1;
+ 
++    unsigned                         resolved:2;
++
+                                      /* ngx_connection_log_error_e */
+     unsigned                         log_error:2;
+ 
+diff -u ./src/core/ngx_core.h.orig ./src/core/ngx_core.h
+--- ./src/core/ngx_core.h.orig	2018-09-23 18:21:15.052749222 +0000
++++ ./src/core/ngx_core.h	2018-09-23 18:21:28.609781071 +0000
+@@ -39,6 +39,7 @@
+ #define  NGX_DONE       -4
+ #define  NGX_DECLINED   -5
+ #define  NGX_ABORT      -6
++#define  NGX_YIELD      -7
+ 
+ 
+ #include <ngx_errno.h>
