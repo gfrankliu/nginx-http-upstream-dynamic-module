@@ -32,7 +32,8 @@ jobs:
           path: module
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev libssl-dev zlib1g-dev
+        # nginx < 1.21.5 only supports the original PCRE library
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev libpcre3-dev libssl-dev zlib1g-dev
 
       - name: Download nginx
         run: curl -fsSL https://nginx.org/download/nginx-${{ matrix.nginx }}.tar.gz | tar xz
