@@ -1,1 +1,5 @@
+* Support nginx up to 1.31 (one patch for 1.10+), fix the module never
+  re-resolving names, work with hash/ip_hash/least_conn/random, fix crash when
+  a client closes the connection during resolving, honor upstream "resolver"
+  on nginx 1.27.3+.
 * Initial check in, forked from https://github.com/alibaba/tengine
