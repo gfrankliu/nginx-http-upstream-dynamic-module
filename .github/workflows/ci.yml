@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: nginx ${{ matrix.nginx }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        nginx:
+          - 1.18.0
+          - 1.20.2
+          - 1.22.1
+          - 1.24.0
+          - 1.26.3
+          - 1.28.3
+          - 1.30.5
+          - 1.31.6
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: module
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev libssl-dev zlib1g-dev
+
+      - name: Download nginx
+        run: curl -fsSL https://nginx.org/download/nginx-${{ matrix.nginx }}.tar.gz | tar xz
+
+      - name: Apply patch
+        working-directory: nginx-${{ matrix.nginx }}
+        run: patch -p0 < ../module/http-upstream-dynamic.patch
+
+      - name: Build
+        working-directory: nginx-${{ matrix.nginx }}
+        run: |
+          ./configure --with-debug --with-http_ssl_module \
+              --add-module=../module --with-cc-opt=-Wno-error
+          make -j$(nproc) 2>&1 | tee build.log
+          if grep -E 'ngx_http_upstream_dynamic_module\.c:[0-9]+:[0-9]+: (warning|error)' build.log; then
+              echo "::error::module compiled with warnings"
+              exit 1
+          fi
+
+      - name: Runtime tests
+        run: module/t/run.sh $PWD/nginx-${{ matrix.nginx }}/objs/nginx
