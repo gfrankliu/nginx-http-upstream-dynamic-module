@@ -12,17 +12,22 @@ Description
 Compilation
 ===========
 
-```
-\#for nginx 1.10 or lower, use the patch http-upstream-dynamic.patch
-\#for nginx 1.14 or higher, use the patch http-upstream-dynamic.patch-1.14.0+
+The patch `http-upstream-dynamic.patch` applies to nginx 1.10 through the latest
+releases (tested with 1.18, 1.24, 1.26, 1.28, 1.30 and 1.31).
 
+```
+cd /path/to/nginx-source
 patch -p0 < /path/to/nginx-http-upstream-dynamic-module/http-upstream-dynamic.patch
 
 ./configure --add-module=/path/to/nginx-http-upstream-dynamic-module
 ```
 
+`http-upstream-dynamic.patch-1.14.0+` is kept as an alias of the same patch.
+
 Examples
 ========
+
+    resolver 8.8.8.8 valid=30s;
 
     upstream backend {
         dynamic_resolve fallback=stale fail_timeout=30s;
@@ -51,6 +56,17 @@ dynamic_resolve
 
 Enable dynamic DNS resolving functionality in an upstream.
 
+Server names are resolved with the `resolver` configured in http, server or
+location context (with nginx 1.27.3+, a `resolver` inside the upstream block
+takes precedence). Every request resolves the name of the server chosen by the
+load balancer, the result is cached according to the `valid` parameter of
+`resolver` or the DNS TTL. Only the first address returned is used, so a server
+name is a single peer in the upstream.
+
+It works with all round robin based balancers: the default round robin, `hash`,
+`ip_hash`, `least_conn` and `random`, as well as `keepalive`. Servers using the
+`resolve` parameter of nginx 1.27.3+ are left to nginx itself.
+
 The 'fallback' parameter specifies what action to take if a domain name can not be resolved into an IP address:
 
 * stale, use the original IP addresses resolved when tengine starts.
@@ -63,6 +79,8 @@ Notes
 =====
 
 * It is a tengine module from
- https://github.com/alibaba/tengine/blob/master/src/http/modules/ngx_http_upstream_dynamic_module.c
- and made to work with nginx 1.9
+ https://github.com/alibaba/tengine/tree/master/modules/ngx_http_upstream_dynamic_module
+ and made to work with nginx
+* Since 1.27.3 nginx can re-resolve upstream servers natively with
+ `server ... resolve;` (requires a `zone`), which may be an alternative to this module.
 * It follows original tengine license.
